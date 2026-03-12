@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>電學互動實驗室 - 家教教學工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 95%; max-width: 1000px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 30px; }
+        
+        /* Tab Styles */
+        .tabs { display: flex; cursor: pointer; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab { padding: 10px 25px; background: #eee; border: none; outline: none; transition: 0.3s; font-size: 16px; font-weight: bold; border-radius: 8px 8px 0 0; margin-right: 5px; }
+        .tab.active { background: #007bff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .control-panel { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; border: 1px solid #e9ecef; }
+        .description { color: #666; font-size: 0.9rem; line-height: 1.5; margin-bottom: 15px; }
+        .footer { margin-top: 30px; color: #999; font-size: 0.8rem; }
+        label { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>電學互動實驗室 ⚡</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="openTab(event, 'singlePhase')">單相三線 (家用)</button>
+            <button class="tab" onclick="openTab(event, 'threePhase')">三相交流電 (工業)</button>
+        </div>
+
+        <div id="singlePhase" class="tab-content active">
+            <p class="description"><b>單相三線：</b> 模擬台灣家庭配電。紅線與黑線相位差 180°。兩線相減（電位差）即得到藍色的 220V 電壓。</p>
+            <div class="control-panel">
+                <label>頻率調整：</label>
+                <input type="range" id="freq1" min="1" max="100" value="60">
+                <span id="freqVal1">60 Hz</span>
+            </div>
+            <canvas id="chart1"></canvas>
+        </div>
+
+        <div id="threePhase" class="tab-content">
+            <p class="description"><b>三相電：</b> 模擬工業用電。三條相線各差 120°，能產生穩定的旋轉磁場帶動馬達。且三相平衡時，總電流和為零。</p>
+            <div class="control-panel">
+                <label>頻率調整：</label>
+                <input type="range" id="freq2" min="1" max="100" value="50">
+                <span id="freqVal2">50 Hz</span>
+            </div>
+            <canvas id="chart2"></canvas>
+        </div>
+
+        <div class="footer">
+            製作人：家教老師的教學工具箱 | 使用 Chart.js 驅動
+        </div>
+    </div>
+
+    <script>
+        let offset = 0;
+        let freq1 = 60, freq2 = 50;
+
+        // Tab 切換邏輯
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) tabcontent[i].className = tabcontent[i].className.replace(" active", "");
+            tablinks = document.getElementsByClassName("tab");
+            for (i = 0; i < tablinks.length; i++) tablinks[i].className = tablinks[i].className.replace(" active", "");
+            document.getElementById(tabName).className += " active";
+            evt.currentTarget.className += " active";
+        }
+
+        // 初始化圖表 1
+        const ctx1 = document.getElementById('chart1').getContext('2d');
+        const chart1 = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 120}, (_, i) => i),
+                datasets: [
+                    { label: '活線 A (110V)', borderColor: 'red', data: [], borderWidth: 2, pointRadius: 0, fill: false },
+                    { label: '活線 B (-110V)', borderColor: 'black', data: [], borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false },
+                    { label: '合成 220V', borderColor: 'blue', data: [], borderWidth: 4, pointRadius: 0, fill: false }
+                ]
+            },
+            options: { responsive: true, animation: false, scales: { y: { min: -350, max: 350 }, x: { display: false } } }
+        });
+
+        // 初始化圖表 2
+        const ctx2 = document.getElementById('chart2').getContext('2d');
+        const chart2 = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 120}, (_, i) => i),
+                datasets: [
+                    { label: 'Phase L1', borderColor: '#e74c3c', data: [], borderWidth: 3, pointRadius: 0, fill: false },
+                    { label: 'Phase L2', borderColor: '#2ecc71', data: [], borderWidth: 3, pointRadius: 0, fill: false },
+                    { label: 'Phase L3', borderColor: '#3498db', data: [], borderWidth: 3, pointRadius: 0, fill: false }
+                ]
+            },
+            options: { responsive: true, animation: false, scales: { y: { min: -1.5, max: 1.5 }, x: { display: false } } }
+        });
+
+        // 控制器監聽
+        document.getElementById('freq1').oninput = (e) => { freq1 = e.target.value; document.getElementById('freqVal1').innerText = freq1 + ' Hz'; };
+        document.getElementById('freq2').oninput = (e) => { freq2 = e.target.value; document.getElementById('freqVal2').innerText = freq2 + ' Hz'; };
+
+        function animate() {
+            const d1A = [], d1B = [], d1Diff = [];
+            const d2A = [], d2B = [], d2C = [];
+            const rad = Math.PI / 180;
+
+            for (let i = 0; i < 120; i++) {
+                let t = i * 0.0004 + offset;
+                // 單相計算
+                d1A.push(155 * Math.sin(2 * Math.PI * freq1 * t));
+                d1B.push(155 * Math.sin(2 * Math.PI * freq1 * t + Math.PI));
+                d1Diff.push(d1A[i] - d1B[i]);
+                // 三相計算
+                let ang = 2 * Math.PI * freq2 * t;
+                d2A.push(Math.sin(ang));
+                d2B.push(Math.sin(ang - 120 * rad));
+                d2C.push(Math.sin(ang - 240 * rad));
+            }
+
+            chart1.data.datasets[0].data = d1A; chart1.data.datasets[1].data = d1B; chart1.data.datasets[2].data = d1Diff;
+            chart2.data.datasets[0].data = d2A; chart2.data.datasets[1].data = d2B; chart2.data.datasets[2].data = d2C;
+            
+            chart1.update(); chart2.update();
+            offset += 0.0003;
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
